@@ -36,7 +36,7 @@
                   "})\r",
                   "\r",
                   "pm.test(\"Username matches\", ()=>{\r",
-                  "    pm.expect(jsonData.username).to.eql(\"emilys\");\r",
+                  "    pm.expect(jsonData.username).to.eql(pm.iterationData.get(\"loginUsername\"));\r",
                   "})"
                 ],
                 "type": "text/javascript",
@@ -56,7 +56,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"username\": \"emilys\",\r\n    \"password\": \"emilyspass\",\r\n    \"expiresInMins\": 30\r\n}"
+              "raw": "{\r\n    \"username\": \"{{loginUsername}}\",\r\n    \"password\": \"{{loginPassword}}\",\r\n    \"expiresInMins\": 30\r\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/user/login",
@@ -91,7 +91,7 @@
                   "    pm.expect(pm.response.responseTime).to.be.below(200)\r",
                   "})\r",
                   "\r",
-                  "const jsonData= pm.response.json();\r",
+                  "const jsonData = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Response has an id\", ()=>{\r",
                   "    pm.expect(jsonData).to.have.property('id')\r",
@@ -101,9 +101,10 @@
                   "    pm.expect(jsonData.firstName).to.eql(\"Test\");\r",
                   "})\r",
                   "\r",
-                  "pm.environment.set(\"userId\", ()=>{\r",
-                  "    pm.expect(pm.environment.get(\"userId\")).to.not.be.undefined;\r",
-                  "})"
+                  "pm.environment.set(\"createdUserId\", jsonData.id);\r",
+                  "pm.test(\"createdUserId saved to environment\", function () {\r",
+                  "    pm.expect(pm.environment.get(\"createdUserId\")).to.not.be.undefined;\r",
+                  "});"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -159,16 +160,26 @@
                   "\r",
                   "const jsonData = pm.response.json();\r",
                   "\r",
-                  "pm.test(\"User ID is 1\", function () {\r",
-                  "    pm.expect(jsonData.id).to.eql(1);\r",
+                  "const createdUserId = pm.environment.get(\"createdUserId\");\r",
+                  "pm.test(\"createdUserId was dynamically captured from Create User\", function () {\r",
+                  "    pm.expect(createdUserId).to.not.be.undefined;\r",
+                  "    pm.expect(createdUserId).to.be.a('number');\r",
                   "});\r",
                   "\r",
-                  "pm.test(\"Response has required fields\", function () {\r",
-                  "    pm.expect(jsonData).to.have.property('id');\r",
-                  "    pm.expect(jsonData).to.have.property('firstName');\r",
-                  "    pm.expect(jsonData).to.have.property('lastName');\r",
-                  "    pm.expect(jsonData).to.have.property('email');\r",
-                  "    pm.expect(jsonData).to.have.property('age');\r",
+                  "pm.test(\"firstName is correct\", function () {\r",
+                  "    pm.expect(jsonData.firstName).to.eql(pm.iterationData.get(\"firstName\"));\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"lastName is correct\", function () {\r",
+                  "    pm.expect(jsonData.lastName).to.eql(pm.iterationData.get(\"lastName\"));\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"age is correct\", function () {\r",
+                  "    pm.expect(jsonData.age).to.eql(pm.iterationData.get(\"age\"));\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"gender is correct\", function () {\r",
+                  "    pm.expect(jsonData.gender).to.eql(pm.iterationData.get(\"gender\"));\r",
                   "});\r",
                   "\r",
                   "const schema = {\r",
@@ -216,13 +227,13 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseUrl}}/users/1",
+              "raw": "{{baseUrl}}/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "users",
-                "1"
+                "{{userId}}"
               ]
             }
           },
@@ -247,14 +258,14 @@
                   "const jsonData = pm.response.json();\r",
                   "\r",
                   "pm.test(\"firstName was updated correctly\", function () {\r",
-                  "    pm.expect(jsonData.firstName).to.eql(\"UpdatedName\");\r",
+                  "    pm.expect(jsonData.firstName).to.eql(pm.iterationData.get(\"updateFirstName\"));\r",
                   "});\r",
                   "\r",
-                  "pm.test(\"User ID is still 1\", function () {\r",
-                  "    pm.expect(jsonData.id).to.eql(1);\r",
+                  "pm.test(\"User ID is correct\", function () {\r",
+                  "    pm.expect(jsonData.id).to.eql(pm.iterationData.get(\"userId\"));\r",
                   "});\r",
                   "\r",
-                  "const savedUserId = pm.environment.get(\"userId\");\r",
+                  "const savedUserId = pm.iterationData.get(\"userId\");\r",
                   "pm.test(\"userId is available from environment\", function () {\r",
                   "    pm.expect(savedUserId).to.not.be.undefined;\r",
                   "});"
@@ -276,7 +287,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"firstName\": \"UpdatedName\"\r\n}",
+              "raw": "{\r\n    \"firstName\": \"{{updateFirstName}}\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -284,13 +295,13 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/users/1",
+              "raw": "{{baseUrl}}/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "users",
-                "1"
+                "{{userId}}"
               ]
             }
           },
@@ -317,8 +328,8 @@
                   "    pm.expect(jsonData.isDeleted).to.be.true;\r",
                   "});\r",
                   "\r",
-                  "pm.test(\"Deleted user ID is 1\", function () {\r",
-                  "    pm.expect(jsonData.id).to.eql(1);\r",
+                  "pm.test(\"Deleted user ID is correct\", function () {\r",
+                  "    pm.expect(jsonData.id).to.eql(pm.iterationData.get(\"userId\"));\r",
                   "});"
                 ],
                 "type": "text/javascript",
@@ -341,13 +352,13 @@
               "raw": "{\r\n    \"firstName\": \"UpdatedName\"\r\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/users/1",
+              "raw": "{{baseUrl}}/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "users",
-                "1"
+                "{{userId}}"
               ]
             }
           },
